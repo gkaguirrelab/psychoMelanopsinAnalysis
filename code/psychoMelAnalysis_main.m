@@ -18,7 +18,6 @@ dropboxDir = ...
 
 dataDir = '/MELA_data/MaxPulsePsychophysics/';
 analysisDir = '/MELA_analysis/psychoMelanopsinAnalysis/';
-outputFileName=fullfile(dropboxDir, analysisDir, 'FileNameHere');
 
 %% Subject list
 subjectIDs={'MELA_0094','MELA_0049','MELA_0050','MELA_0075','MELA_0077','MELA_0081'};
@@ -75,24 +74,24 @@ for ss=1:length(subjectIDs)
     subjectTable(28:end,:)=[];
     subjectTable.response=averageScores;
     subjectTable.repetitionTag=[];
-    dataTable{ss}=subjectTable;
+    foldedDataTable{ss}=subjectTable;
 end
 
 %% Calculate the correlation of each subject to the average of the other subjects
 for ss=1:length(subjectIDs)
     subjectIdx=find([1:1:length(subjectIDs)]~=ss);
     for jj=1:length(subjectIdx)
-       responseMatrix(jj,:)=dataTable{subjectIdx(jj)}.response;
+       responseMatrix(jj,:)=foldedDataTable{subjectIdx(jj)}.response;
     end
-    averageResponses=mean(responseMatrix);
-    betweenSubConsistency(ss)=corr(dataTable{ss}.response,averageResponses','type','Spearman');
+    averageResponses=median(responseMatrix);
+    betweenSubConsistency(ss)=corr(foldedDataTable{ss}.response,averageResponses','type','Spearman');
 end
 
 %% Obtain the mean and SEM across subjects for each perceptual dimension crossed with each direction
 for ss=1:length(subjectIDs)
-    responseMatrix(ss,:)=dataTable{ss}.response;
+    responseMatrix(ss,:)=foldedDataTable{ss}.response;
 end
-tmpTable=dataTable{1};
+tmpTable=foldedDataTable{1};
 resultTableByStimulus=tmpTable(:,[2 3]);
 resultTableByStimulus.medianResponse = median(responseMatrix)';
 resultTableByStimulus.iqrResponse = iqr(responseMatrix)';
@@ -106,3 +105,10 @@ resultTableBySubject.betweenSubConsistency=betweenSubConsistency';
 %% Dump the tables to the console
 resultTableBySubject
 resultTableByStimulus
+
+%% Write tables to excel file
+outputFileName=fullfile(dropboxDir, analysisDir, 'resultTableBySubject.csv');
+writetable(resultTableBySubject,outputFileName);
+
+outputFileName=fullfile(dropboxDir, analysisDir, 'resultTableByStimulus.csv');
+writetable(resultTableByStimulus,outputFileName);
