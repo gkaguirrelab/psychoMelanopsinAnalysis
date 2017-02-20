@@ -37,11 +37,11 @@ for ss=1:length(subjectIDs)
         warning(['Subject ' subjectsIDs{ss} ' does not have a .mat file']);
     else
         if length(matFileIdx)>1
-        warning(['Subject ' subjectsIDs{ss} ' has more than one .mat file']);
+            warning(['Subject ' subjectsIDs{ss} ' has more than one .mat file']);
         else
             dataCellArray{ss}=load(fileList{matFileIdx});
         end
-    end    
+    end
 end % Loop over subjects
 warning('on','MATLAB:load:cannotInstantiateLoadedVariable');
 warning('on','MATLAB:dispatcher:UnresolvedFunctionHandle');
@@ -56,6 +56,14 @@ for ss=1:length(subjectIDs)
     repTag.Properties.VariableNames={'repetitionTag'};
     dataTable{ss}=[subjectTable repTag];
 end
+
+%% Sort the rows in order by repTag, then stimLabel, then trialNumber
+for ss=1:length(subjectIDs)
+    subjectTable=dataTable{ss};
+    subjectTable=sortrows(subjectTable,{'repetitionTag','stimLabel','trialNum'});
+    dataTable{ss}=subjectTable;
+end
+
 
 %% Calculate for each subject the correlation between rep1 and rep2 responses
 for ss=1:length(subjectIDs)
@@ -81,7 +89,7 @@ end
 for ss=1:length(subjectIDs)
     subjectIdx=find([1:1:length(subjectIDs)]~=ss);
     for jj=1:length(subjectIdx)
-       responseMatrix(jj,:)=foldedDataTable{subjectIdx(jj)}.response;
+        responseMatrix(jj,:)=foldedDataTable{subjectIdx(jj)}.response;
     end
     averageResponses=median(responseMatrix);
     betweenSubConsistency(ss)=corr(foldedDataTable{ss}.response,averageResponses','type','Spearman');
