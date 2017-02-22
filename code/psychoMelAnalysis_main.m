@@ -20,7 +20,7 @@ dataDir = '/MELA_data/MaxPulsePsychophysics/';
 analysisDir = '/MELA_analysis/psychoMelanopsinAnalysis/';
 
 %% Subject list
-subjectIDs={'MELA_0094','MELA_0049','MELA_0050','MELA_0075','MELA_0077','MELA_0081'};
+subjectIDs={'MELA_0094','MELA_0049','MELA_0050','MELA_0075','MELA_0077','MELA_0081', 'MELA_0080', 'MELA_0037', 'MELA_0090'};
 
 %% Load the data
 % Turn off the warnings that arise from loading the saved files without
@@ -73,6 +73,14 @@ for ss=1:length(subjectIDs)
     withinSubReliability(ss)=corr(subjectTable.response(rep1Idx),subjectTable.response(rep2Idx),'type','Spearman');
 end
 
+%% Calculate the difference between first and second responses for each subject
+for ss=1:length(subjectIDs)
+    subjectTable=dataTable{ss};
+    rep1Idx=find(subjectTable.repetitionTag=='rep1');
+    rep2Idx=find(subjectTable.repetitionTag=='rep2');
+    differenceValues{ss}=(subjectTable.response(rep1Idx) - subjectTable.response(rep2Idx));
+end
+
 %% Average the first and second responses for each subject
 for ss=1:length(subjectIDs)
     subjectTable=dataTable{ss};
@@ -113,7 +121,6 @@ resultTableBySubject.betweenSubConsistency=betweenSubConsistency';
 %% Dump the tables to the console
 resultTableBySubject
 resultTableByStimulus
-
 %% Write tables to excel file
 outputFileName=fullfile(dropboxDir, analysisDir, 'resultTableBySubject.csv');
 writetable(resultTableBySubject,outputFileName);
