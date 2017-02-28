@@ -20,7 +20,7 @@ dataDir = '/MELA_data/MaxPulsePsychophysics/';
 analysisDir = '/MELA_analysis/psychoMelanopsinAnalysis/';
 
 %% Subject list
-subjectIDs={'MELA_0094','MELA_0049','MELA_0050','MELA_0075','MELA_0077','MELA_0081', 'MELA_0080', 'MELA_0037', 'MELA_0090', 'MELA_0043'};
+subjectIDs={'MELA_0094','MELA_0049','MELA_0050','MELA_0075','MELA_0077','MELA_0081', 'MELA_0080', 'MELA_0037', 'MELA_0090', 'MELA_0043', 'MELA_0073'};
 
 %% Load the data
 % Turn off the warnings that arise from loading the saved files without
