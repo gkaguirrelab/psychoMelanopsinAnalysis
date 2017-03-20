@@ -20,7 +20,7 @@ dataDir = '/MELA_data/MaxPulsePsychophysics/';
 analysisDir = '/MELA_analysis/psychoMelanopsinAnalysis/';
 
 %% Subject list
-subjectIDs={'MELA_0094','MELA_0049','MELA_0050','MELA_0075','MELA_0077','MELA_0081', 'MELA_0080', 'MELA_0037', 'MELA_0090', 'MELA_0043', 'MELA_0073'};
+subjectIDs={'MELA_0094','MELA_0049','MELA_0050','MELA_0075','MELA_0077','MELA_0081', 'MELA_0080', 'MELA_0037', 'MELA_0090', 'MELA_0043', 'MELA_0073','MELA_0089'};
 
 %% Load the data
 % Turn off the warnings that arise from loading the saved files without
@@ -34,7 +34,7 @@ for ss=1:length(subjectIDs)
     fileList = getAllFiles(subjectDir);
     matFileIdx=find(~cellfun(@isempty, strfind(fileList,'.mat')));
     if isempty(matFileIdx)
-        warning(['Subject ' subjectsIDs{ss} ' does not have a .mat file']);
+        warning(['Subject ' subjectIDs{ss} ' does not have a .mat file']);
     else
         if length(matFileIdx)>1
             warning(['Subject ' subjectsIDs{ss} ' has more than one .mat file']);
