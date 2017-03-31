@@ -39,7 +39,9 @@ for ss=1:length(subjectIDs)
         warning(['Subject ' subjectIDs{ss} ' does not have a .mat file']);
     else
         if length(matFileIdx)>1
-            warning(['Subject ' subjectsIDs{ss} ' has more than one .mat file']);
+            warning(['Subject ' subjectIDs{ss} ' has more than one .mat file. Taking the last in the list.']);
+            matFileIdx=matFileIdx(end);
+            dataCellArray{ss}=load(fileList{matFileIdx});
         else
             dataCellArray{ss}=load(fileList{matFileIdx});
         end
@@ -123,6 +125,7 @@ resultTableBySubject.betweenSubConsistency=betweenSubConsistency';
 %% Dump the tables to the console
 resultTableBySubject
 resultTableByStimulus
+
 %% Write tables to excel file
 outputFileName=fullfile(dropboxDir, analysisDir, 'resultTableBySubject.csv');
 writetable(resultTableBySubject,outputFileName);
