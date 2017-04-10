@@ -28,6 +28,10 @@ switch (localHostName)
 end
 dataDir = '/MELA_data/MaxPulsePsychophysics/';
 analysisDir = '/MELA_analysis/psychoMelanopsinAnalysis/';
+figureDir = fullfile(dropboxDir,analysisDir,'figures');
+if (~exist(figureDir,'dir'))
+    mkdir(figureDir);
+end
 
 %% Subject list
 subjectIDs={...
@@ -188,3 +192,91 @@ for ss=1:length(subjectIDs)
         dataVectorsMel2(ss,dd) = subjectTable.response(rep2Sel & MelSel & dimSel);
     end
 end
+dataVectorsLightFluxMean = (dataVectorsLightFlux1 + dataVectorsLightFlux2)/2;
+dataVectorsLMSMean = (dataVectorsLMS1 + dataVectorsLMS2)/2;
+dataVectorsMelMean = (dataVectorsMel1 + dataVectorsMel2)/2;
+labelsLightFlux = ones(size(dataVectorsLightFluxMean,1),1);
+labelsLMS = 2*ones(size(dataVectorsLMSMean,1),1);
+labelsMel = 3*ones(size(dataVectorsLMSMean,1),1);
+
+
+%% Let's try to classify
+%
+% Set up date
+responsesLMS_Mel = [dataVectorsLMSMean ; dataVectorsMelMean];
+labelsLMS_Mel = [labelsLMS ; labelsMel];
+
+% Do PCA
+pcaBasisLMS_Mel = pca(responsesLMS_Mel);
+pcaResponsesLMS_Mel = (pcaBasisLMS_Mel\responsesLMS_Mel')';
+
+% Cross-validated linear SVM performance on PCA representation
+nFolds = 10;
+CVO = cvpartition(labelsLMS_Mel,'kfold',nFolds);
+testCheckIndex = [];
+predictionLMS_Mel = NaN*ones(size(labelsLMS_Mel));
+keepDim = 2;
+for cc = 1:CVO.NumTestSets
+    % Split set
+    trainingIndex = CVO.training(cc);
+    testIndex = CVO.test(cc);
+    testCheckIndex = [testCheckIndex ; find(testIndex)];
+    
+    % Do the classify
+    classifyInfoLMS_Mel{cc} = fitcsvm(pcaResponsesLMS_Mel(trainingIndex,1:keepDim),labelsLMS_Mel(trainingIndex),'KernelFunction','linear','Solver','SMO');
+    predictionLMS_Mel(testIndex) = predict(classifyInfoLMS_Mel{cc},pcaResponsesLMS_Mel(testIndex,1:keepDim));
+end
+testCheckIndex = sort(testCheckIndex);
+if (any(testCheckIndex ~= (1:length(labelsLMS_Mel))'))
+    error('We do not understand the cvpartition object');
+end
+correctLMS_Mel = predictionLMS_Mel == labelsLMS_Mel;
+percentCorrectLMS_Mel = 100*sum(correctLMS_Mel)/length(correctLMS_Mel);
+
+% Classifier on all the data, for looking at boundary
+classifyInfoLMS_Mel = fitcsvm(pcaResponsesLMS_Mel(:,1:keepDim),labelsLMS_Mel,'KernelFunction','linear','Solver','SMO');
+w1 = classifyInfoLMS_Mel.Beta(1);
+w2 = classifyInfoLMS_Mel.Beta(2);
+b = classifyInfoLMS_Mel.Bias;
+fitX = linspace(min(pcaResponsesLMS_Mel(:,1)),max(pcaResponsesLMS_Mel(:,1)),100);
+fitY = (-w1/w2)*fitX - b/w2;
+
+% Plot of classification
+classifyFigure = figure; clf; hold on
+set(gca,'FontName','Helvetica','FontSize',14);
+set(gcf,'Position',[100 100 700 700]);
+plot(pcaResponsesLMS_Mel(labelsLMS_Mel == labelsLMS(1),1),pcaResponsesLMS_Mel(labelsLMS_Mel == labelsLMS(1),2),'ro','MarkerSize',12,'MarkerFaceColor','r');
+plot(pcaResponsesLMS_Mel(labelsLMS_Mel == labelsMel(1),1),pcaResponsesLMS_Mel(labelsLMS_Mel == labelsMel(1),2),'go','MarkerSize',12,'MarkerFaceColor','g');
+plot(fitX,fitY,'k','LineWidth',2);
+xlabel('PCA Dimension 1','FontSize',18);
+ylabel('PCA Dimension 2','FontSize',18);
+title({'LMS versus Mel' ; sprintf('Classification Accuracy %d%%',round(percentCorrectLMS_Mel)) ; ''},'FontSize',18);
+legend({'LMS', 'Mel'},'Location','NorthWest','FontSize',14);
+curdir = pwd;
+cd(figureDir);
+FigureSave('ClassifyLMS_Mel.pdf',classifyFigure,'pdf');
+cd(curdir);
+
+% Plot discriminant weights
+discrim = w1*pcaBasisLMS_Mel(:,1) + w2*pcaBasisLMS_Mel(:,2);
+[~,index] = sort(discrim);
+discrimFigure = figure; clf; hold on
+set(gcf,'Position',[100 100 1750 750]);
+bar(1:length(perceptualDimensions),discrim(index));
+perceptualDimensionsCell{1} = '';
+for ll = 2:length(perceptualDimensions)+1
+    perceptualDimensionsCell{ll} = char(perceptualDimensions(index(ll-1)));
+end
+perceptualDimensionsCell{length(perceptualDimensions)+2} = '';
+set(gca,'XTickLabel',perceptualDimensionsCell,'FontSize',14);
+xlabel('Perceptual Dimension','FontSize',16);
+ylabel('Melanopishness','FontSize',16);
+ylim([-0.5 0.5]);
+title({'LMS versus Mel' ; 'Dimensional Interpreation from Classifier' ; ''},'FontSize',18);
+curdir = pwd;
+cd(figureDir);
+FigureSave('DimInterpretLMS_Mel.pdf',discrimFigure,'pdf');
+cd(curdir);
+
+
+
