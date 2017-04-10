@@ -152,12 +152,39 @@ resultTableBySubject.withinSubReliability=withinSubReliability';
 resultTableBySubject.betweenSubConsistency=betweenSubConsistency';
 
 %% Dump the tables to the console
-resultTableBySubject
-resultTableByStimulus
+% resultTableBySubject
+% resultTableByStimulus
 
-%% Write tables to excel file
+%% Write summary tables to excel files
 outputFileName=fullfile(dropboxDir, analysisDir, 'resultTableBySubject.csv');
 writetable(resultTableBySubject,outputFileName);
-
 outputFileName=fullfile(dropboxDir, analysisDir, 'resultTableByStimulus.csv');
 writetable(resultTableByStimulus,outputFileName);
+
+%% Get data into format for pca, svm
+perceptualDimensions = unique(dataTable{1}.perceptualDimension,'stable');
+nPerceptualDimensions = length(perceptualDimensions);
+nSubjects = length(subjectIDs);
+dataVectorsLightFlux1 = zeros(nSubjects,nPerceptualDimensions);
+dataVectorsLightFlux2 = zeros(nSubjects,nPerceptualDimensions);
+dataVectorsLMS1 = zeros(nSubjects,nPerceptualDimensions);
+dataVectorsLMS2 = zeros(nSubjects,nPerceptualDimensions);
+dataVectorsMel1 = zeros(nSubjects,nPerceptualDimensions);
+dataVectorsMel2 = zeros(nSubjects,nPerceptualDimensions);
+for ss=1:length(subjectIDs)
+    subjectTable = dataTable{ss};
+    rep1Sel = subjectTable.repetitionTag=='rep1';
+    rep2Sel = subjectTable.repetitionTag=='rep2';
+    lightFluxSel = subjectTable.stimLabel=='Light Flux';
+    LMSSel = subjectTable.stimLabel=='MaxLMS';
+    MelSel = subjectTable.stimLabel=='MaxMel';
+    for dd = 1:nPerceptualDimensions
+        dimSel = subjectTable.perceptualDimension == perceptualDimensions(dd);
+        dataVectorsLightFlux1(ss,dd) = subjectTable.response(rep1Sel & lightFluxSel & dimSel);
+        dataVectorsLightFlux2(ss,dd) = subjectTable.response(rep2Sel & lightFluxSel & dimSel);
+        dataVectorsLMS1(ss,dd) = subjectTable.response(rep1Sel & LMSSel & dimSel);
+        dataVectorsLMS2(ss,dd) = subjectTable.response(rep2Sel & LMSSel & dimSel);
+        dataVectorsMel1(ss,dd) = subjectTable.response(rep1Sel & MelSel & dimSel);
+        dataVectorsMel2(ss,dd) = subjectTable.response(rep2Sel & MelSel & dimSel);
+    end
+end
