@@ -1,4 +1,3 @@
-
 % psychMelAnalysis_main
 %
 % This routine loads the results of psychophysical measurement of the
@@ -10,12 +9,23 @@ clear variables
 close all
 clc
 
-%% Set directory and filename paths
+%% Set directory and filename paths, machine dependent.
+%
+% Could move these to a preference set in a local hook, but
+% for now just dealing with it.
+[~, localHostName] = system('scutil --get LocalHostName');
 [~, userName] = system('whoami');
+localHostName = strtrim(localHostName);
 userName = strtrim(userName);
-dropboxDir = ...
-    fullfile('/Users', userName, '/Dropbox (Aguirre-Brainard Lab)');
-
+switch (localHostName)
+    case 'eagleray'
+        % DHB's desktop
+        dropboxDir = fullfile(filesep,'Volumes','Users1','Dropbox (Aguirre-Brainard Lab)');
+        
+    otherwise
+        % Some unspecified machine, go with more typical default.
+        dropboxDir = fullfile('/Users', userName, '/Dropbox (Aguirre-Brainard Lab)');
+end
 dataDir = '/MELA_data/MaxPulsePsychophysics/';
 analysisDir = '/MELA_analysis/psychoMelanopsinAnalysis/';
 
