@@ -321,5 +321,14 @@ cd(figureDir);
 FigureSave('DimInterpretAll.pdf',discrimFigure,'pdf');
 cd(curdir);
 
+%% Post-hoc tests
+
+% Wilcoxon signed-rank test examining if brightness ratings are greater for
+% the Light Flux as compared to LMS condition
+theQualityIndex=7;
+p = signrank(theResponses(1:20,theQualityIndex),theResponses(21:40,theQualityIndex));
+outline=['Wilcoxon signed-rank test of ' char(perceptualDimensions(theQualityIndex)) ' in Light Flux vs. LMS: ' num2str(p) '\n'];
+fprintf(outline);
+
 
 
