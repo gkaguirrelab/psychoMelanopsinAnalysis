@@ -195,74 +195,116 @@ end
 dataVectorsLightFluxMean = (dataVectorsLightFlux1 + dataVectorsLightFlux2)/2;
 dataVectorsLMSMean = (dataVectorsLMS1 + dataVectorsLMS2)/2;
 dataVectorsMelMean = (dataVectorsMel1 + dataVectorsMel2)/2;
-labelsLightFlux = ones(size(dataVectorsLightFluxMean,1),1);
-labelsLMS = 2*ones(size(dataVectorsLMSMean,1),1);
-labelsMel = 3*ones(size(dataVectorsLMSMean,1),1);
 
 
-%% Let's try to classify
+%% Classification analysis
 %
-% Set up date
-responsesLMS_Mel = [dataVectorsLMSMean ; dataVectorsMelMean];
-labelsLMS_Mel = [labelsLMS ; labelsMel];
-
-% Do PCA
-pcaBasisLMS_Mel = pca(responsesLMS_Mel);
-pcaResponsesLMS_Mel = (pcaBasisLMS_Mel\responsesLMS_Mel')';
+% Set up data
+theResponses = [dataVectorsLightFluxMean ; dataVectorsLMSMean ; dataVectorsMelMean];
+labelsLightFluxClassify = ones(size(dataVectorsLightFluxMean,1),1);
+labelsLMSClassify = ones(size(dataVectorsLMSMean,1),1);
+labelsMelClassify = 2*ones(size(dataVectorsLMSMean,1),1);
+labelsLightFluxSep = ones(size(dataVectorsLightFluxMean,1),1);
+labelsLMSSep = 2*ones(size(dataVectorsLMSMean,1),1);
+labelsMelSep = 3*ones(size(dataVectorsLMSMean,1),1);
+theLabelsClassify = [labelsLightFluxClassify; labelsLMSClassify ; labelsMelClassify];
+theLabelsSep = [labelsLightFluxSep; labelsLMSSep ; labelsMelSep];
 
 % Cross-validated linear SVM performance on PCA representation
 nFolds = 10;
-CVO = cvpartition(labelsLMS_Mel,'kfold',nFolds);
+CVO = cvpartition(theLabelsClassify,'kfold',nFolds);
 testCheckIndex = [];
-predictionLMS_Mel = NaN*ones(size(labelsLMS_Mel));
+thePrediction = NaN*ones(size(theLabelsClassify));
 keepDim = 2;
 for cc = 1:CVO.NumTestSets
-    % Split set
+  % Split set
     trainingIndex = CVO.training(cc);
     testIndex = CVO.test(cc);
     testCheckIndex = [testCheckIndex ; find(testIndex)];
     
+    % Do PCA
+    thePCABasis{cc} = pca(theResponses(trainingIndex,:));
+    pcaResponses{cc} = (thePCABasis{cc}\theResponses')';
+    
     % Do the classify
-    classifyInfoLMS_Mel{cc} = fitcsvm(pcaResponsesLMS_Mel(trainingIndex,1:keepDim),labelsLMS_Mel(trainingIndex),'KernelFunction','linear','Solver','SMO');
-    predictionLMS_Mel(testIndex) = predict(classifyInfoLMS_Mel{cc},pcaResponsesLMS_Mel(testIndex,1:keepDim));
+    classifyInfo{cc} = fitcsvm(pcaResponses{cc}(trainingIndex,1:keepDim),theLabelsClassify(trainingIndex),'KernelFunction','linear','Solver','SMO');
+    thePrediction(testIndex) = predict(classifyInfo{cc},pcaResponses{cc}(testIndex,1:keepDim));
 end
 testCheckIndex = sort(testCheckIndex);
-if (any(testCheckIndex ~= (1:length(labelsLMS_Mel))'))
+if (any(testCheckIndex ~= (1:length(theLabelsClassify))'))
     error('We do not understand the cvpartition object');
 end
-correctLMS_Mel = predictionLMS_Mel == labelsLMS_Mel;
-percentCorrectLMS_Mel = 100*sum(correctLMS_Mel)/length(correctLMS_Mel);
+crossValCorrectMel = thePrediction == theLabelsClassify;
+percentCorrectLMS_Mel = 100*sum(crossValCorrectMel)/length(crossValCorrectMel);
 
-% Classifier on all the data, for looking at boundary
-classifyInfoLMS_Mel = fitcsvm(pcaResponsesLMS_Mel(:,1:keepDim),labelsLMS_Mel,'KernelFunction','linear','Solver','SMO');
-w1 = classifyInfoLMS_Mel.Beta(1);
-w2 = classifyInfoLMS_Mel.Beta(2);
-b = classifyInfoLMS_Mel.Bias;
-fitX = linspace(min(pcaResponsesLMS_Mel(:,1)),max(pcaResponsesLMS_Mel(:,1)),100);
+%% Classifier on all the data, for looking at boundary
+%
+% Do PCA
+thePCABasisAll = pca(theResponses);
+pcaResponsesAll = (thePCABasisAll\theResponses')';
+classifyInfoAll = fitcsvm(pcaResponsesAll(:,1:keepDim),theLabelsClassify,'KernelFunction','linear','Solver','SMO');
+w1 = classifyInfoAll.Beta(1);
+w2 = classifyInfoAll.Beta(2);
+b = classifyInfoAll.Bias;
+fitX = linspace(min(pcaResponsesAll(:,1)),max(pcaResponsesAll(:,1)),100);
 fitY = (-w1/w2)*fitX - b/w2;
+discrim = w1*thePCABasisAll(:,1) + w2*thePCABasisAll(:,2);
+discrim = discrim/norm(discrim);
+
+%% Boostrap the classifier on all data, to get error bars on the dimensions
+nSubjects = size(dataVectorsLMSMean,1);
+nBootstraps = 1000;
+for bb = 1:nBootstraps
+    bindex = randi(nSubjects,nSubjects,1);
+    theResponsesBoot = [dataVectorsLightFluxMean(bindex,:) ; dataVectorsLMSMean(bindex,:) ; dataVectorsMelMean(bindex,:)];
+    labelsLightFluxClassifyBoot = ones(size(dataVectorsLightFluxMean,1),1);
+    labelsLMSClassifyBoot = ones(size(dataVectorsLMSMean,1),1);
+    labelsMelClassifyBoot = 2*ones(size(dataVectorsLMSMean,1),1);
+    theLabelsClassifyBoot = [labelsLightFluxClassifyBoot; labelsLMSClassifyBoot ; labelsMelClassifyBoot];
+    
+    thePCABasisBoot = pca(theResponsesBoot);
+    pcaResponsesBoot = (thePCABasisBoot\theResponsesBoot')';
+    classifyInfoBoot = fitcsvm(pcaResponsesBoot(:,1:keepDim),theLabelsClassifyBoot,'KernelFunction','linear','Solver','SMO');
+    w1Boot = classifyInfoBoot.Beta(1);
+    w2Boot = classifyInfoBoot.Beta(2);
+    bBoot = classifyInfoBoot.Bias;
+    fitXBoot = linspace(min(pcaResponsesBoot(:,1)),max(pcaResponsesBoot(:,1)),100);
+    fitYBoot = (-w1Boot/w2Boot)*fitXBoot - bBoot/w2Boot;
+    discrimBoot(:,bb) = w1Boot*thePCABasisBoot(:,1) + w2Boot*thePCABasisBoot(:,2);
+    discrimBoot(:,bb) = discrimBoot(:,bb)/norm(discrimBoot(:,bb));
+end
+meanDiscrimBoot = mean(discrimBoot,2);
+stderrDiscrimBoot = std(discrimBoot,[],2);
 
 % Plot of classification
 classifyFigure = figure; clf; hold on
 set(gca,'FontName','Helvetica','FontSize',14);
 set(gcf,'Position',[100 100 700 700]);
-plot(pcaResponsesLMS_Mel(labelsLMS_Mel == labelsLMS(1),1),pcaResponsesLMS_Mel(labelsLMS_Mel == labelsLMS(1),2),'ro','MarkerSize',12,'MarkerFaceColor','r');
-plot(pcaResponsesLMS_Mel(labelsLMS_Mel == labelsMel(1),1),pcaResponsesLMS_Mel(labelsLMS_Mel == labelsMel(1),2),'go','MarkerSize',12,'MarkerFaceColor','g');
+plot(pcaResponsesAll(theLabelsSep == labelsLightFluxSep(1),1),pcaResponsesAll(theLabelsSep == labelsLightFluxSep(1),2),'ko','MarkerSize',12,'MarkerFaceColor','k');
+plot(pcaResponsesAll(theLabelsSep == labelsLMSSep(1),1),pcaResponsesAll(theLabelsSep == labelsLMSSep(1),2),'ro','MarkerSize',12,'MarkerFaceColor','r');
+plot(pcaResponsesAll(theLabelsSep == labelsMelSep(1),1),pcaResponsesAll(theLabelsSep == labelsMelSep(1),2),'go','MarkerSize',12,'MarkerFaceColor','g');
 plot(fitX,fitY,'k','LineWidth',2);
 xlabel('PCA Dimension 1','FontSize',18);
 ylabel('PCA Dimension 2','FontSize',18);
-title({'LMS versus Mel' ; sprintf('Classification Accuracy %d%%',round(percentCorrectLMS_Mel)) ; ''},'FontSize',18);
-legend({'LMS', 'Mel'},'Location','NorthWest','FontSize',14);
+title({'LightFlux/LMS versus Mel' ; sprintf('Classification Accuracy %d%%',round(percentCorrectLMS_Mel)) ; ''},'FontSize',18);
+legend({'LightFlux', 'LMS', 'Mel'},'Location','NorthWest','FontSize',14);
 curdir = pwd;
 cd(figureDir);
-FigureSave('ClassifyLMS_Mel.pdf',classifyFigure,'pdf');
+FigureSave('ClassifyAll.pdf',classifyFigure,'pdf');
 cd(curdir);
 
 % Plot discriminant weights
-discrim = w1*pcaBasisLMS_Mel(:,1) + w2*pcaBasisLMS_Mel(:,2);
-[~,index] = sort(discrim);
+barColor = [0.5 0.5 0.5];
+barEdgeColor = [0 0 0];
+errorBarColor = [0.5 0.5 0.5];
+xColor = [0 0 0];
+[~,index] = sort(meanDiscrimBoot);
 discrimFigure = figure; clf; hold on
 set(gcf,'Position',[100 100 1750 750]);
-bar(1:length(perceptualDimensions),discrim(index));
+h = bar(1:length(perceptualDimensions),discrimBoot(index));
+set(h,'FaceColor',barColor,'EdgeColor',barEdgeColor);
+errorbar(1:length(perceptualDimensions),discrimBoot(index),stderrDiscrimBoot(index),'b.','Color',errorBarColor);
+%plot(1:length(perceptualDimensions),discrim(index),'x','MarkerSize',16,'MarkerFaceColor',xColor,'MarkerEdgeColor',xColor);
 perceptualDimensionsCell{1} = '';
 for ll = 2:length(perceptualDimensions)+1
     perceptualDimensionsCell{ll} = char(perceptualDimensions(index(ll-1)));
@@ -271,11 +313,12 @@ perceptualDimensionsCell{length(perceptualDimensions)+2} = '';
 set(gca,'XTickLabel',perceptualDimensionsCell,'FontSize',14);
 xlabel('Perceptual Dimension','FontSize',16);
 ylabel('Melanopishness','FontSize',16);
-ylim([-0.5 0.5]);
+ylim([-0.75 0.75]);
+set(gca,'YTick',[-0.75 -0.5 -0.25 0 0.25 0.5 0.75]);
 title({'LMS versus Mel' ; 'Dimensional Interpreation from Classifier' ; ''},'FontSize',18);
 curdir = pwd;
 cd(figureDir);
-FigureSave('DimInterpretLMS_Mel.pdf',discrimFigure,'pdf');
+FigureSave('DimInterpretAll.pdf',discrimFigure,'pdf');
 cd(curdir);
 
 
