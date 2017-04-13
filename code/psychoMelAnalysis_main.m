@@ -235,12 +235,13 @@ if (any(testCheckIndex ~= (1:length(theLabelsClassify))'))
     error('We do not understand the cvpartition object');
 end
 crossValCorrectMel = thePrediction == theLabelsClassify;
-percentCorrectLMS_Mel = 100*sum(crossValCorrectMel)/length(crossValCorrectMel);
+percentCorrectMel = 100*sum(crossValCorrectMel)/length(crossValCorrectMel);
 
 %% Classifier on all the data, for looking at boundary
 %
 % Do PCA
-thePCABasisAll = pca(theResponses);
+[thePCABasisAll,~,pcaVarAll] = pca(theResponses);
+pcaPercentVarAll = 100*pcaVarAll/sum(pcaVarAll);
 pcaResponsesAll = (thePCABasisAll\theResponses')';
 classifyInfoAll = fitcsvm(pcaResponsesAll(:,1:keepDim),theLabelsClassify,'KernelFunction','linear','Solver','SMO');
 w1 = classifyInfoAll.Beta(1);
@@ -275,6 +276,9 @@ for bb = 1:nBootstraps
 end
 meanDiscrimBoot = mean(discrimBoot,2);
 stderrDiscrimBoot = std(discrimBoot,[],2);
+normBoot = norm(meanDiscrimBoot);
+meanDiscrimBootNormed = meanDiscrimBoot/normBoot;
+stderrDiscrimBootNormed = stderrDiscrimBoot/normBoot;
 
 % Plot of classification
 classifyFigure = figure; clf; hold on
@@ -286,7 +290,7 @@ plot(pcaResponsesAll(theLabelsSep == labelsMelSep(1),1),pcaResponsesAll(theLabel
 plot(fitX,fitY,'k','LineWidth',2);
 xlabel('PCA Dimension 1','FontSize',18);
 ylabel('PCA Dimension 2','FontSize',18);
-title({'LightFlux/LMS versus Mel' ; sprintf('Classification Accuracy %d%%',round(percentCorrectLMS_Mel)) ; ''},'FontSize',18);
+title({'LightFlux/LMS versus Mel' ; sprintf('Classification Accuracy %d%%',round(percentCorrectMel)) ; ''},'FontSize',18);
 legend({'LightFlux', 'LMS', 'Mel'},'Location','NorthWest','FontSize',14);
 curdir = pwd;
 cd(figureDir);
@@ -301,10 +305,10 @@ xColor = [0 0 0];
 [~,index] = sort(meanDiscrimBoot);
 discrimFigure = figure; clf; hold on
 set(gcf,'Position',[100 100 1750 750]);
-h = bar(1:length(perceptualDimensions),discrimBoot(index));
+h = bar(1:length(perceptualDimensions),meanDiscrimBootNormed(index));
 set(h,'FaceColor',barColor,'EdgeColor',barEdgeColor);
-errorbar(1:length(perceptualDimensions),discrimBoot(index),stderrDiscrimBoot(index),'b.','Color',errorBarColor);
-%plot(1:length(perceptualDimensions),discrim(index),'x','MarkerSize',16,'MarkerFaceColor',xColor,'MarkerEdgeColor',xColor);
+errorbar(1:length(perceptualDimensions),meanDiscrimBootNormed(index),stderrDiscrimBootNormed(index),'b.','Color',errorBarColor);
+plot(1:length(perceptualDimensions),discrim(index),'x','MarkerSize',16,'MarkerFaceColor',xColor,'MarkerEdgeColor',xColor);
 perceptualDimensionsCell{1} = '';
 for ll = 2:length(perceptualDimensions)+1
     perceptualDimensionsCell{ll} = char(perceptualDimensions(index(ll-1)));
