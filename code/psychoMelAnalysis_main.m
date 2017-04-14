@@ -216,8 +216,9 @@ CVO = cvpartition(theLabelsClassify,'kfold',nFolds);
 testCheckIndex = [];
 thePrediction = NaN*ones(size(theLabelsClassify));
 keepDim = 2;
+classifyDim = 2;
 for cc = 1:CVO.NumTestSets
-  % Split set
+    % Split set
     trainingIndex = CVO.training(cc);
     testIndex = CVO.test(cc);
     testCheckIndex = [testCheckIndex ; find(testIndex)];
@@ -227,8 +228,8 @@ for cc = 1:CVO.NumTestSets
     pcaResponses{cc} = (thePCABasis{cc}\theResponses')';
     
     % Do the classify
-    classifyInfo{cc} = fitcsvm(pcaResponses{cc}(trainingIndex,1:keepDim),theLabelsClassify(trainingIndex),'KernelFunction','linear','Solver','SMO');
-    thePrediction(testIndex) = predict(classifyInfo{cc},pcaResponses{cc}(testIndex,1:keepDim));
+    classifyInfo{cc} = fitcsvm(pcaResponses{cc}(trainingIndex,1:classifyDim),theLabelsClassify(trainingIndex),'KernelFunction','linear','Solver','SMO');
+    thePrediction(testIndex) = predict(classifyInfo{cc},pcaResponses{cc}(testIndex,1:classifyDim));
 end
 testCheckIndex = sort(testCheckIndex);
 if (any(testCheckIndex ~= (1:length(theLabelsClassify))'))
@@ -243,13 +244,24 @@ percentCorrectMel = 100*sum(crossValCorrectMel)/length(crossValCorrectMel);
 [thePCABasisAll,~,pcaVarAll] = pca(theResponses);
 pcaPercentVarAll = 100*pcaVarAll/sum(pcaVarAll);
 pcaResponsesAll = (thePCABasisAll\theResponses')';
-classifyInfoAll = fitcsvm(pcaResponsesAll(:,1:keepDim),theLabelsClassify,'KernelFunction','linear','Solver','SMO');
-w1 = classifyInfoAll.Beta(1);
-w2 = classifyInfoAll.Beta(2);
+classifyInfoAll = fitcsvm(pcaResponsesAll(:,1:classifyDim),theLabelsClassify,'KernelFunction','linear','Solver','SMO');
+for ii=1:classifyDim
+    w(ii) = classifyInfoAll.Beta(ii);
+end
 b = classifyInfoAll.Bias;
 fitX = linspace(min(pcaResponsesAll(:,1)),max(pcaResponsesAll(:,1)),100);
-fitY = (-w1/w2)*fitX - b/w2;
-discrim = w1*thePCABasisAll(:,1) + w2*thePCABasisAll(:,2);
+switch classifyDim
+    case 1
+        fitY = fitX; % <--- Ugly hack to make the fit line
+        fitY(fitX < b)=4;
+        fitY(fitX >= b)=16;
+        discrim = w(1)*thePCABasisAll(:,1);
+    case 2
+        fitY = (-w(1)/w(2))*fitX - b/w(2);
+        discrim = w(1)*thePCABasisAll(:,1) + w(2)*thePCABasisAll(:,2);
+    otherwise
+        error('I can only handle classifying on two or fewer dimensions');
+end
 discrim = discrim/norm(discrim);
 
 %% Boostrap the classifier on all data, to get error bars on the dimensions
@@ -265,13 +277,20 @@ for bb = 1:nBootstraps
     
     thePCABasisBoot = pca(theResponsesBoot);
     pcaResponsesBoot = (thePCABasisBoot\theResponsesBoot')';
-    classifyInfoBoot = fitcsvm(pcaResponsesBoot(:,1:keepDim),theLabelsClassifyBoot,'KernelFunction','linear','Solver','SMO');
-    w1Boot = classifyInfoBoot.Beta(1);
-    w2Boot = classifyInfoBoot.Beta(2);
+    classifyInfoBoot = fitcsvm(pcaResponsesBoot(:,1:classifyDim),theLabelsClassifyBoot,'KernelFunction','linear','Solver','SMO');
+    for ii= 1:classifyDim
+        wBoot(ii) = classifyInfoBoot.Beta(ii);
+    end
     bBoot = classifyInfoBoot.Bias;
     fitXBoot = linspace(min(pcaResponsesBoot(:,1)),max(pcaResponsesBoot(:,1)),100);
-    fitYBoot = (-w1Boot/w2Boot)*fitXBoot - bBoot/w2Boot;
-    discrimBoot(:,bb) = w1Boot*thePCABasisBoot(:,1) + w2Boot*thePCABasisBoot(:,2);
+    switch classifyDim
+        case 1
+            discrimBoot(:,bb) = wBoot(1)*thePCABasisBoot(:,1);
+        case 2
+            discrimBoot(:,bb) = wBoot(1)*thePCABasisBoot(:,1) + wBoot(2)*thePCABasisBoot(:,2);
+        otherwise
+            error('I can only handle classifying on two or fewer dimensions');
+    end
     discrimBoot(:,bb) = discrimBoot(:,bb)/norm(discrimBoot(:,bb));
 end
 meanDiscrimBoot = mean(discrimBoot,2);
