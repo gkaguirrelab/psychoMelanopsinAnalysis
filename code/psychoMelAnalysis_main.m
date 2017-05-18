@@ -1,3 +1,5 @@
+function psychMelAnalysis_main(ppsPsychoDir)
+
 % psychMelAnalysis_main
 %
 % This routine loads the results of psychophysical measurement of the
@@ -5,28 +7,9 @@
 
 
 %% Housekeeping
-clear variables
 close all
 clc
 
-%% Set directory and filename paths, machine dependent.
-%
-% Could move these to a preference set in a local hook, but
-% for now just dealing with it.
-[~, localHostName] = system('scutil --get LocalHostName');
-[~, userName] = system('whoami');
-localHostName = strtrim(localHostName);
-userName = strtrim(userName);
-switch (localHostName)
-    case 'eagleray'
-        % DHB's desktop
-        dropboxDir = fullfile(filesep,'Volumes','Users1','Dropbox (Aguirre-Brainard Lab)');
-        
-    otherwise
-        % Some unspecified machine, go with more typical default.
-        dropboxDir = fullfile('/Users', userName, '/Dropbox (Aguirre-Brainard Lab)');
-end
-dataDir = '/MELA_data/MaxPulsePsychophysics/';
 analysisDir = '/MELA_analysis/psychoMelanopsinAnalysis/';
 figureDir = fullfile(dropboxDir,analysisDir,'figures');
 if (~exist(figureDir,'dir'))
@@ -65,7 +48,7 @@ warning('off','MATLAB:dispatcher:UnresolvedFunctionHandle');
 warning('off','MATLAB:class:EnumerableClassNotFound');
 
 for ss=1:length(subjectIDs)
-    subjectDir=fullfile(dropboxDir,dataDir,subjectIDs{ss});
+    subjectDir=fullfile(dropboxDir,ppsPsychoDir,subjectIDs{ss});
     fileList = getAllFiles(subjectDir);
     matFileIdx=find(~cellfun(@isempty, strfind(fileList,'.mat')));
     if isempty(matFileIdx)
@@ -352,6 +335,3 @@ theQualityIndex=7;
 p = signrank(theResponses(1:20,theQualityIndex),theResponses(21:40,theQualityIndex));
 outline=['Wilcoxon signed-rank test of ' char(perceptualDimensions(theQualityIndex)) ' in Light Flux vs. LMS: ' num2str(p) '\n'];
 fprintf(outline);
-
-
-
