@@ -1,6 +1,6 @@
-function psychMelAnalysis_main(ppsPsychoDir)
+function psychoMelAnalysis_main(ppsPsychoDir)
 
-% psychMelAnalysis_main
+% psychoMelAnalysis_main
 %
 % This routine loads the results of psychophysical measurement of the
 % perceptual properties of pulses of spectral modulation
@@ -10,8 +10,8 @@ function psychMelAnalysis_main(ppsPsychoDir)
 close all
 clc
 
-analysisDir = '/MELA_analysis/psychoMelanopsinAnalysis/';
-figureDir = fullfile(dropboxDir,analysisDir,'figures');
+analysisDir = '~/Desktop';
+figureDir = fullfile('~/Desktop','figures');
 if (~exist(figureDir,'dir'))
     mkdir(figureDir);
 end
@@ -48,7 +48,7 @@ warning('off','MATLAB:dispatcher:UnresolvedFunctionHandle');
 warning('off','MATLAB:class:EnumerableClassNotFound');
 
 for ss=1:length(subjectIDs)
-    subjectDir=fullfile(dropboxDir,ppsPsychoDir,subjectIDs{ss});
+    subjectDir=fullfile(ppsPsychoDir,subjectIDs{ss});
     fileList = getAllFiles(subjectDir);
     matFileIdx=find(~cellfun(@isempty, strfind(fileList,'.mat')));
     if isempty(matFileIdx)
@@ -143,9 +143,9 @@ resultTableBySubject.betweenSubConsistency=betweenSubConsistency';
 % resultTableByStimulus
 
 %% Write summary tables to excel files
-outputFileName=fullfile(dropboxDir, analysisDir, 'resultTableBySubject.csv');
+outputFileName=fullfile( analysisDir, 'resultTableBySubject.csv');
 writetable(resultTableBySubject,outputFileName);
-outputFileName=fullfile(dropboxDir, analysisDir, 'resultTableByStimulus.csv');
+outputFileName=fullfile( analysisDir, 'resultTableByStimulus.csv');
 writetable(resultTableByStimulus,outputFileName);
 
 %% Get data into format for pca, svm
