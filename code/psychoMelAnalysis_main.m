@@ -290,7 +290,7 @@ title({'LightFlux/LMS versus Mel' ; sprintf('Classification Accuracy %d%%',round
 legend({'LightFlux', 'LMS', 'Mel'},'Location','NorthWest','FontSize',14);
 curdir = pwd;
 cd(analysisDir);
-FigureSave('psycho_ClassifyAll.pdf',classifyFigure,'pdf');
+saveas (classifyFigure,'psycho_ClassifyAll.pdf','pdf');
 cd(curdir);
 
 % Plot discriminant weights
@@ -318,7 +318,7 @@ set(gca,'YTick',[-0.75 -0.5 -0.25 0 0.25 0.5 0.75]);
 title({'LMS versus Mel' ; 'Dimensional Interpreation from Classifier' ; ''},'FontSize',18);
 curdir = pwd;
 cd(analysisDir);
-FigureSave('psycho_DimInterpretAll.pdf',discrimFigure,'pdf');
+saveas(discrimFigure, 'psycho_DimInterpretAll.pdf','pdf');
 cd(curdir);
 
 %% Post-hoc tests
