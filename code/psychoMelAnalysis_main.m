@@ -1,5 +1,7 @@
 function psychoMelAnalysis_main(ppsPsychoDir, analysisDir)
 
+fprintf('> Running %s\n', mfilename);
+
 % psychoMelAnalysis_main
 %
 % This routine loads the results of psychophysical measurement of the
