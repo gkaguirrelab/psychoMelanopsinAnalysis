@@ -12,6 +12,16 @@ fprintf('> Running %s\n', mfilename);
 close all
 clc
 
+%% Define output folders for figures and tables
+outFigureDir = fullfile(analysisDir, 'figures');
+if ~isdir(outFigureDir)
+    mkdir(outFigureDir);
+end
+outTableDir = fullfile(analysisDir, 'tables');
+if ~isdir(outTableDir)
+    mkdir(outTableDir);
+end
+
 %% Subject list
 subjectIDs={...
     'MELA_0074',...
@@ -139,9 +149,9 @@ resultTableBySubject.betweenSubConsistency=betweenSubConsistency';
 % resultTableByStimulus
 
 %% Write summary tables to excel files
-outputFileName=fullfile( analysisDir, 'psycho_resultTableBySubject.csv');
+outputFileName=fullfile( outTableDir, 'Table_resultTableBySubject.csv');
 writetable(resultTableBySubject,outputFileName);
-outputFileName=fullfile( analysisDir, 'psycho_resultTableByStimulus.csv');
+outputFileName=fullfile( outTableDir, 'Table_resultTableByStimulus.csv');
 writetable(resultTableByStimulus,outputFileName);
 
 %% Get data into format for pca, svm
@@ -291,8 +301,8 @@ ylabel('PCA Dimension 2','FontSize',18);
 title({'LightFlux/LMS versus Mel' ; sprintf('Classification Accuracy %d%%',round(percentCorrectMel)) ; ''},'FontSize',18);
 legend({'LightFlux', 'LMS', 'Mel'},'Location','NorthWest','FontSize',14);
 curdir = pwd;
-cd(analysisDir);
-saveas (classifyFigure,'psycho_ClassifyAll.pdf','pdf');
+cd(outFigureDir);
+saveas (classifyFigure,'Figure_5a.pdf','pdf');
 cd(curdir);
 
 % Plot discriminant weights
@@ -319,8 +329,8 @@ ylim([-0.75 0.75]);
 set(gca,'YTick',[-0.75 -0.5 -0.25 0 0.25 0.5 0.75]);
 title({'LMS versus Mel' ; 'Dimensional Interpreation from Classifier' ; ''},'FontSize',18);
 curdir = pwd;
-cd(analysisDir);
-saveas(discrimFigure, 'psycho_DimInterpretAll.pdf','pdf');
+cd(outFigureDir);
+saveas(discrimFigure, 'Figure5b.pdf','pdf');
 cd(curdir);
 
 %% Post-hoc tests
